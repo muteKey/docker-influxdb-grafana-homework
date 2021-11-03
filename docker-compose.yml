@@ -1,37 +1,49 @@
-influxdb:
-  image: influxdb:latest
-  container_name: influxdb
-  ports:
-    - "8083:8083"
-    - "8086:8086"
-    - "8090:8090"
-    - "2003:2003"
-  env_file:
-    - 'env.influxdb'
-  volumes:
-    # Data persistency
-    # sudo mkdir -p /srv/docker/influxdb/data
-    - /srv/docker/influxdb/data:/var/lib/influxdb
+version: "3.8"
 
-telegraf:
-  image: telegraf:latest
-  container_name: telegraf
-  links:
-    - influxdb
-  volumes:
-    - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+services:
+  influxdb:
+    image: influxdb:latest
+    container_name: influxdb
+    ports:
+      - "8083:8083"
+      - "8086:8086"
+      - "8090:8090"
+      - "2003:2003"
+    env_file:
+      - 'env.influxdb'
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=tig-user
+      - DOCKER_INFLUXDB_INIT_PASSWORD=123123123Aa
+      - DOCKER_INFLUXDB_INIT_ORG=prjctr
+      - DOCKER_INFLUXDB_INIT_BUCKET=ushkov
+      - DOCKER_INFLUXDB_INIT_RETENTION=5d
+    volumes:
+      - ./srv/docker/influxdb/data:/var/lib/influxdb
 
-grafana:
-  image: grafana/grafana:latest
-  container_name: grafana
-  ports:
-    - "3000:3000"
-  env_file:
-    - 'env.grafana'
-  user: "0"
-  links:
-    - influxdb
-  volumes:
-    # Data persistency
-    # sudo mkdir -p /srv/docker/grafana/data; chown 472:472 /srv/docker/grafana/data
-    - /srv/docker/grafana/data:/var/lib/grafana
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    links:
+      - influxdb
+    depends_on:
+      - influxdb
+    environment:
+      - DOCKER_INFLUXDB_INIT_ORG=prjctr
+      - DOCKER_INFLUXDB_INIT_BUCKET=ushkov
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=UP9-ChsTzhRO95AHGZYfhrQaroksYdWPi7-S8J6l95qaev82DRR2LRQbl9rSYVhPZfbJpdOGCpZa-elVg1-3-Q==
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    env_file:
+      - 'env.grafana'
+    user: "0"
+    links:
+      - influxdb
+    volumes:
+      - ./srv/docker/grafana/data:/var/lib/grafana
