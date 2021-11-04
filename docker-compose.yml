@@ -47,3 +47,43 @@ services:
       - influxdb
     volumes:
       - ./srv/docker/grafana/data:/var/lib/grafana
+
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    restart: always
+    ports:
+      - 27017:27017
+    volumes:
+      - ./srv/docker/mongo/db:/data/db
+
+  mongo-seed:
+    build: ./mongo-seed
+    links:
+      - mongodb
+
+  elasticsearch:
+    image: elasticsearch:7.14.2
+    container_name: elasticsearch
+    ports:
+      - 9200:9200
+      - 9300:9300
+    volumes:
+      - ./srv/docker/es/db:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+
+  simple-page-app:
+    build:
+      context: ./simplepage/flaskapp/
+      dockerfile: Dockerfile
+    container_name: simple-page-app
+    environment:
+      MONGO_URL: mongodb://mongodb:27017/
+    ports: 
+      - 5000:5000
+    restart: always
+    depends_on:
+      - mongodb
+      - elasticsearch
+
